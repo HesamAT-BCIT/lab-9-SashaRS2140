@@ -3,6 +3,7 @@
 
 <head>
     <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -10,9 +11,87 @@
     <p>Use the navigation below to manage your profile.</p>
 
     <ul>
-        <li><a href="{{ url_for('profile') }}">Create/Update Profile</a></li>
-        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        <li><a href="{{ url_for('profile.profile') }}">Create/Update Profile</a></li>
+        <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
     </ul>
+
+    <h2>Sensor Data Visualization</h2>
+    <canvas id="sensorChart" width="400" height="200"></canvas>
+
+    <script>
+        async function fetchSensorData() {
+            const response = await fetch('/api/sensor_data', {
+                headers: {
+                    'Authorization': 'Bearer {{ jwt_token }}'
+                }
+            });
+            if (response.ok) {
+                return await response.json();
+            } else {
+                console.error('Failed to fetch sensor data');
+                return [];
+            }
+        }
+
+        async function renderChart() {
+            const data = await fetchSensorData();
+            const labels = data.map(item => item.timestamp);
+            const temperatures = data.map(item => item.temperature);
+            const humidities = data.map(item => item.humidity);
+
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: temperatures,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        yAxisID: 'y',
+                    }, {
+                        label: 'Humidity (%)',
+                        data: humidities,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        yAxisID: 'y1',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    stacked: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Sensor Data Over Time'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+        }
+
+        renderChart();
+    </script>
 </body>
 
 </html>
